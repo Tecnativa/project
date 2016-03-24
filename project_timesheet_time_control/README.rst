@@ -7,9 +7,9 @@ Project Timesheet Time Control
 ==============================
 
 * This module adds a button at account analytic line level to compute the spent
-time, in minutes, from start date to the current moment.
+  time, in minutes, from start date to the current moment.
 * It adds a datetime field that replaces ``date`` field in tree view, and write
-date field with datetime field value.
+  date field with datetime field value.
 * It also adds a filter by user and some groups by task and by user.
 * Finally, it allows to open and close tasks from account analytic lines.
 
@@ -19,6 +19,14 @@ Usage
 .. image:: https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas
    :alt: Try me on Runbot
    :target: https://runbot.odoo-community.org/runbot/140/9.0
+
+Known issues / Roadmap
+======================
+
+* *sale_service* module adds a check at project stage called "Is a closed
+  stage", but we can't use this check, because it has a lot of dependencies
+  (including sale module), so we use the check "Folded in Tasks Pipeline" for
+  considering if a task is closed or not.
 
 Bug Tracker
 ===========

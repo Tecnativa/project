@@ -17,6 +17,25 @@ class TestProjectTimesheetTimeControl(common.TransactionCase):
             'name': 'Test task',
             'project_id': self.project.id,
         })
+        task_type_obj = self.env['project.task.type']
+        self.stage_open = task_type_obj.create({
+            'name': 'New',
+            'fold': False,
+            'project_ids': [(6, 0, self.project.ids)],
+        })
+        self.stage_close = task_type_obj.create({
+            'name': 'Done',
+            'fold': True,
+            'project_ids': [(6, 0, self.project.ids)],
+        })
+        date_time = fields.Datetime.to_string(
+            datetime.now() - timedelta(hours=1))
+        self.line = self.env['account.analytic.line'].create({
+            'date_time': date_time,
+            'task_id': self.task.id,
+            'account_id': self.analytic_account.id,
+            'name': 'Test line',
+        })
 
     def test_onchange_account_id(self):
         record = self.env['account.analytic.line'].new()
@@ -41,12 +60,11 @@ class TestProjectTimesheetTimeControl(common.TransactionCase):
         self.assertEqual(line.date, '2016-03-23')
 
     def test_button_end_work(self):
-        date_time = fields.Datetime.to_string(
-            datetime.now() - timedelta(hours=1))
-        line = self.env['account.analytic.line'].create({
-            'date_time': date_time,
-            'account_id': self.analytic_account.id,
-            'name': 'Test line',
-        })
-        line.button_end_work()
-        self.assertTrue(line.unit_amount)
+        self.line.button_end_work()
+        self.assertTrue(self.line.unit_amount)
+
+    def test_open_close_task(self):
+        self.line.button_close_task()
+        self.assertEqual(self.line.task_id.stage_id, self.stage_close)
+        self.line.button_open_task()
+        self.assertEqual(self.line.task_id.stage_id, self.stage_open)

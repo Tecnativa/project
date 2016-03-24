@@ -16,17 +16,15 @@ class AccountAnalyticLine(models.Model):
 
     @api.onchange('account_id')
     def onchange_account_id(self):
-        if not self.account_id:
-            return {'domain': {'task_id': []}}
         if self.task_id.project_id.analytic_account_id != self.account_id:
             self.task_id = False
-        project = self.env['project.project'].search(
-            [('analytic_account_id', '=', self.account_id.id)], limit=1)
-        return {
-            'domain': {
-                'task_id': [('project_id', '=', project.id),
-                            ('stage_id.fold', '=', False)]},
-        }
+        domain = {'task_id': []}
+        if self.account_id:
+            project = self.env['project.project'].search(
+                [('analytic_account_id', '=', self.account_id.id)], limit=1)
+            domain = {'task_id': [('project_id', '=', project.id),
+                                  ('stage_id.fold', '=', False)]}
+        return {'domain': domain}
 
     @api.onchange('task_id')
     def onchange_task_id(self):
@@ -56,12 +54,18 @@ class AccountAnalyticLine(models.Model):
 
     @api.multi
     def button_open_task(self):
-        stage = self.env['project.task.type'].search(
-            [('fold', '=', False)], limit=1)
-        self.mapped('task_id').write({'stage_id': stage.id})
+        for line in self.filtered('task_id'):
+            if line.task_id.project_id:
+                stage = self.env['project.task.type'].search(
+                    [('project_ids', '=', line.task_id.project_id.id),
+                     ('fold', '=', False)], limit=1)
+                line.task_id.write({'stage_id': stage.id})
 
     @api.multi
     def button_close_task(self):
-        stage = self.env['project.task.type'].search(
-            [('fold', '=', True)], limit=1)
-        self.mapped('task_id').write({'stage_id': stage.id})
+        for line in self.filtered('task_id'):
+            if line.task_id.project_id:
+                stage = self.env['project.task.type'].search(
+                    [('project_ids', '=', line.task_id.project_id.id),
+                     ('fold', '=', True)], limit=1)
+                line.task_id.write({'stage_id': stage.id})
