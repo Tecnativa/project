@@ -6,8 +6,8 @@
 Project Issue Timesheet Time Control
 ====================================
 
-This module adds a button at project issue timesheets to compute minutes
-lasted from start date to the current moment.
+This module adds a button at project issue timesheets to compute the spent
+time, in minutes, from start date to the current moment.
 
 Installation
 ============
