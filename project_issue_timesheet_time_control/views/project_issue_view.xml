@@ -30,8 +30,7 @@
              <field name="inherit_id" ref="project_timesheet.view_account_analytic_line_tree_inherit_account_id"/>
              <field name="arch" type="xml">
                 <field name="task_id" position="after">
-                   <field name="issue_id"
-                          domain="[('project_id.analytic_account_id', '=' , account_id)]"/>
+                   <field name="issue_id" />
                </field>
            </field>
        </record>

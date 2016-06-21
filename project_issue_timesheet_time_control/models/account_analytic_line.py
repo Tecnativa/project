@@ -11,14 +11,16 @@ class AccountAnalyticLine(models.Model):
     @api.onchange('account_id')
     def onchange_account_id(self):
         res = super(AccountAnalyticLine, self).onchange_account_id()
-        domain = res.get('domain', {'issue_id': []})
+        domain = res.setdefault('domain', {'issue_id': []})
         if self.issue_id.project_id.analytic_account_id != self.account_id:
             self.issue_id = False
         if self.account_id:
             project = self.env['project.project'].search(
                 [('analytic_account_id', '=', self.account_id.id)], limit=1)
-            domain = {'issue_id': [('project_id', '=', project.id),
-                                   ('stage_id.fold', '=', False)]}
+            domain['issue_id'] = [
+                ('project_id', '=', project.id),
+                ('stage_id.fold', '=', False),
+            ]
         return {'domain': domain}
 
     @api.onchange('issue_id')
