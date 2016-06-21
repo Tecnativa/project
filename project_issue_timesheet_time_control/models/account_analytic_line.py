@@ -23,5 +23,4 @@ class AccountAnalyticLine(models.Model):
 
     @api.onchange('issue_id')
     def onchange_issue_id(self):
-        if self.issue_id.project_id:
-            self.account_id = self.issue_id.project_id.analytic_account_id.id
+        self.account_id = self.issue_id.project_id.analytic_account_id.id
