@@ -2,7 +2,7 @@
 # (c) 2015 Antiun Ingeniería S.L. - Sergio Teruel
 # (c) 2015 Antiun Ingeniería S.L. - Carlos Dauden
 # License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
-from openerp import models, fields, api
+from openerp import models, fields, api, exceptions, _
 from openerp.tools.float_utils import float_round
 
 
@@ -73,7 +73,14 @@ class Task(models.Model):
                         task.material_ids.create_analytic_line()
                 else:
                     if task.unlink_stock_move():
-                        task.analytic_line_ids.unlink()
+                        if any(task.material_ids.mapped(
+                                'analytic_line_id.invoice_id')):
+                            raise exceptions.Warning(
+                                _(
+                                    "You can't move to not consume stage "
+                                    "because analytic lines are invoiced")
+                            )
+                    task.material_ids.mapped('analytic_line_id').unlink()
         return res
 
     @api.multi
