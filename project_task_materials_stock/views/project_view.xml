@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- © 2015 Sergio Teruel <sergio.teruel@tecnativa.com>
+     © 2015 Carlos Dauden <carlos.dauden@tecnativa.com>
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl-3). -->
 <openerp>
   <data>
 
@@ -27,6 +30,9 @@
           <button name="action_done" type="object" string="Transfer Materials"
                   attrs="{'invisible':[('stock_state','!=','assigned')]}"
                   class="oe_highlight"/>
+        </field>
+        <field name="categ_ids" position="before">
+          <field name="material_warehouse_id" groups="stock.group_locations"/>
         </field>
         <field name="material_ids" position="replace"/>
         <field position="after" name="work_ids">

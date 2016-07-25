@@ -13,17 +13,9 @@
                 <group name="task_materials" string="Task Materials">
                     <label for="id" string="Project Task Materials"/>
                     <div name="project_task_materials">
-                        <div>
+                        <div groups="base.group_multi_company">
                             <label for="company_id"/>
                             <field name="company_id" class="oe_inline"/>
-                        </div>
-                        <div>
-                            <label for="task_materials_location_src_id"/>
-                            <field name="task_materials_location_src_id" class="oe_inline"/>
-                        </div>
-                        <div>
-                            <label for="task_materials_location_dest_id"/>
-                            <field name="task_materials_location_dest_id" class="oe_inline"/>
                         </div>
                         <div>
                             <label for="task_materials_analytic_journal_id"/>

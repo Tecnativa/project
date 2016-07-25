@@ -17,8 +17,10 @@ Configuration
 Check option 'Consume Material' in Task Stage to generate a stock move when
 the task is in that stage.
 
-Go to Setting -> Configuration - > Projects and enable option
-"Manage time estimation on tasks"
+Go to Setting > Configuration > Projects:
+#. Enable option **Manage time estimation on tasks**
+#. Select Analytic Journal for Task Materials
+
 
 Usage
 =====
@@ -66,10 +68,10 @@ Credits
 Contributors
 ------------
 
-* Rafael Blasco <rafabn@antiun.com>
-* Pedro M. Baeza <pedro.baeza@serviciosbaeza.com>
-* Carlos Dauden <carlos@incaser.es>
-* Sergio Teruel <sergio@incaser.es>
+* Rafael Blasco <rafael.blasco@tecnativa.com>
+* Pedro M. Baeza <pedro.baeza@tecnativa.com>
+* Carlos Dauden <carlos.dauden@tecnativa.com>
+* Sergio Teruel <sergio.teruel@tecnativa.com>
 
 Maintainer
 ----------

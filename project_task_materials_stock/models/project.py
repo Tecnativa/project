@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-# (c) 2015 Antiun Ingeniería S.L. - Sergio Teruel
-# (c) 2015 Antiun Ingeniería S.L. - Carlos Dauden
-# License AGPL-3 - See http://www.gnu.org/licenses/agpl-3.0.html
+# © 2015 Sergio Teruel <sergio.teruel@tecnativa.com>
+# © 2015 Carlos Dauden <carlos.dauden@tecnativa.com>
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+
 from openerp import models, fields, api, exceptions, _
 from openerp.tools.float_utils import float_round
 
@@ -45,6 +46,15 @@ class Task(models.Model):
             elif task.stock_move_ids.filtered(lambda r: r.state == 'done'):
                 task.stock_state = 'done'
 
+    def _get_default_warehouse(self):
+        company_id = self.env.user.company_id.id
+        wh_obj = self.env['stock.warehouse']
+        wh = wh_obj.search([('company_id', '=', company_id)], limit=1)
+        if not wh:
+            raise exceptions.Warning(
+                _('There is no warehouse for the current user\'s company.'))
+        return wh
+
     stock_move_ids = fields.Many2many(
         comodel_name='stock.move', compute='_compute_stock_move',
         string='Stock Moves')
@@ -58,6 +68,10 @@ class Task(models.Model):
          ('assigned', 'Assigned'),
          ('done', 'Done')],
         compute='_compute_stock_state', string='Stock State')
+    material_warehouse_id = fields.Many2one(
+        comodel_name='stock.warehouse',
+        default=_get_default_warehouse,
+        string='Material Warehouse')
 
     @api.multi
     def unlink_stock_move(self):
@@ -147,10 +161,9 @@ class ProjectTaskMaterials(models.Model):
             'product_uos_qty': self.quantity,
             'origin': self.task_id.name,
             'location_id':
-                self.env.user.company_id.task_materials_location_src_id.id or
+                self.task_id.material_warehouse_id.wh_output_stock_loc_id.id or
                 self.env.ref('stock.stock_location_stock').id,
             'location_dest_id':
-                self.env.user.company_id.task_materials_location_dest_id.id or
                 self.env.ref('stock.stock_location_customers').id,
         }
         return res
