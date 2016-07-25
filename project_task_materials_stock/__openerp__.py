@@ -16,6 +16,7 @@
     'data': [
         'data/project_task_materials_data.xml',
         'views/project_view.xml',
+        'views/res_config_view.xml',
     ],
     'installable': True,
     'auto_install': True,

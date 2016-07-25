@@ -146,10 +146,12 @@ class ProjectTaskMaterials(models.Model):
             'product_uom_qty': self.quantity,
             'product_uos_qty': self.quantity,
             'origin': self.task_id.name,
-            'location_id': self.env.ref(
-                'stock.stock_location_stock').id,
-            'location_dest_id': self.env.ref(
-                'stock.stock_location_customers').id,
+            'location_id':
+                self.env.user.company_id.task_materials_location_src_id.id or
+                self.env.ref('stock.stock_location_stock').id,
+            'location_dest_id':
+                self.env.user.company_id.task_materials_location_dest_id.id or
+                self.env.ref('stock.stock_location_customers').id,
         }
         return res
 
@@ -162,10 +164,12 @@ class ProjectTaskMaterials(models.Model):
 
     def _prepare_analytic_line(self):
         product = self.product_id
-        company_id = self.env['res.company']._company_default_get(
-            'account.analytic.line')
-        journal = self.env.ref(
-            'project_task_materials_stock.analytic_journal_sale_materials')
+        company_obj = self.env['res.company']
+        company_id = company_obj._company_default_get('account.analytic.line')
+        company = company_obj.browse(company_id)
+        journal = (company.task_materials_analytic_journal_id or
+                   self.env.ref('project_task_materials_stock.'
+                                'analytic_journal_sale_materials'))
         analytic_account = getattr(self.task_id, 'analytic_account_id', False)\
             or self.task_id.project_id.analytic_account_id
         res = {
