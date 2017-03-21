@@ -161,7 +161,7 @@ class ProjectTaskMaterials(models.Model):
             'product_uos_qty': self.quantity,
             'origin': self.task_id.name,
             'location_id':
-                self.task_id.material_warehouse_id.wh_output_stock_loc_id.id or
+                self.task_id.material_warehouse_id.lot_stock_id.id or
                 self.env.ref('stock.stock_location_stock').id,
             'location_dest_id':
                 self.env.ref('stock.stock_location_customers').id,
