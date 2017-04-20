@@ -25,7 +25,8 @@ class ProjectTask(models.Model):
         string='Depending Tasks',
         comodel_name='project.task',
         help='Tasks that are dependent on this task.',
-        compute='_compute_dependency'
+        relation='project_task_dependency_task_rel',
+        column1='dependency_task_id', column2='task_id',
     )
 
     recursive_depending_task_ids = fields.Many2many(
@@ -40,7 +41,6 @@ class ProjectTask(models.Model):
     def _compute_dependency(self):
         self.recursive_dependency_task_ids = self.get_dependency_tasks(self,
                                                                        True)
-        self.depending_task_ids = self.get_depending_tasks(self)
         self.recursive_depending_task_ids = self.get_depending_tasks(self,
                                                                      True)
 
