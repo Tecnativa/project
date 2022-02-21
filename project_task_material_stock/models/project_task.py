@@ -228,6 +228,12 @@ class ProjectTaskMaterial(models.Model):
                 .search([("user_id", "=", self.task_id.user_id.id)], limit=1)
                 .id
             )
+        # distributions
+        distributions = self.env["account.analytic.distribution"].search(
+            [("account_id", "=", analytic_account.id)]
+        )
+        if distributions:
+            vals["tag_ids"] = [(6, 0, distributions.mapped("tag_id").ids)]
         res.update(vals)
         return res
 

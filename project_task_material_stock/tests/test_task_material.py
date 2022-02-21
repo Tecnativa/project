@@ -39,6 +39,14 @@ class TestTaskMaterial(common.SavepointCase):
         cls.analytic_account = cls.env["account.analytic.account"].create(
             {"name": "Test account"}
         )
+        cls.analytic_tag = cls.env["account.analytic.tag"].create({"name": "Test tag"})
+        cls.env["account.analytic.distribution"].create(
+            {
+                "account_id": cls.analytic_account.id,
+                "tag_id": cls.analytic_tag.id,
+                "percentage": 100,
+            }
+        )
         cls.task = cls.env["project.task"].create(
             {
                 "name": "task test 1",
@@ -89,6 +97,7 @@ class TestTaskMaterial(common.SavepointCase):
         self.task2.stock_move_ids.write({"state": "draft"})
         self.assertEqual(len(self.task2.stock_move_ids), 1)
         self.assertEqual(len(self.task2.analytic_line_ids), 1)
+        self.assertIn(self.analytic_tag, self.task_material2.analytic_line_id.tag_ids)
         moves = self.task2.stock_move_ids.ids
         analytics = self.task2.analytic_line_ids.ids
         self.task2.unlink()
