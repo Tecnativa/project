@@ -4,3 +4,6 @@ from . import account_analytic_line
 from . import project
 from . import project_task
 from . import stock_move
+from . import stock_picking_type
+from . import stock_scrap
+from . import stock_warehouse

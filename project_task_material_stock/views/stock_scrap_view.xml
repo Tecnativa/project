@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="stock_scrap_form_view2" model="ir.ui.view">
+        <field name="name">stock.scrap.form2</field>
+        <field name="model">stock.scrap</field>
+        <field name="inherit_id" ref="stock.stock_scrap_form_view2" />
+        <field name="arch" type="xml">
+            <field name="owner_id" position="after">
+                <field name="task_id" invisible="1" />
+            </field>
+        </field>
+    </record>
+</odoo>

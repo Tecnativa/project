@@ -78,12 +78,12 @@ class TestTaskMaterial(common.SavepointCase):
         )
         self.assertEqual(self.task.stock_state, "pending")
         self.task.stage_id = self.env.ref("project.project_stage_0").id
-        self.assertEqual(len(self.task.stock_move_ids), 0)
+        self.assertEqual(len(self.task.move_raw_ids), 0)
         self.assertEqual(len(self.task.analytic_line_ids), 0)
         self.task.stage_id = self.stage_deployed.id
-        self.assertEqual(len(self.task.stock_move_ids), 1)
+        self.assertEqual(len(self.task.move_raw_ids), 1)
         self.task2 = self.task.copy()
-        self.assertEqual(len(self.task2.stock_move_ids), 0)
+        self.assertEqual(len(self.task2.move_raw_ids), 0)
         self.assertEqual(len(self.task2.analytic_line_ids), 0)
         self.task_material2 = self.env["project.task.material"].create(
             {
@@ -94,18 +94,16 @@ class TestTaskMaterial(common.SavepointCase):
             }
         )
         self.task2.stage_id = self.stage_deployed.id
-        self.task2.stock_move_ids.write({"state": "draft"})
-        self.assertEqual(len(self.task2.stock_move_ids), 1)
+        self.task2.move_raw_ids.write({"state": "draft"})
+        self.assertEqual(len(self.task2.move_raw_ids), 1)
         self.assertEqual(len(self.task2.analytic_line_ids), 1)
         self.assertIn(self.analytic_tag, self.task_material2.analytic_line_id.tag_ids)
-        moves = self.task2.stock_move_ids.ids
         analytics = self.task2.analytic_line_ids.ids
         self.task2.unlink()
-        self.assertEqual(len(self.env["stock.move"].search([("id", "in", moves)])), 0)
         self.assertEqual(
             len(self.env["account.analytic.line"].search([("id", "in", analytics)])), 0
         )
-        self.task.stock_move_ids.write({"state": "confirmed"})
+        self.task.move_raw_ids.write({"state": "confirmed"})
         self.assertEqual(self.task.stock_state, "confirmed")
         self.assertEqual(len(self.task.analytic_line_ids), 1)
         with self.assertRaises(UserError):
@@ -115,8 +113,8 @@ class TestTaskMaterial(common.SavepointCase):
         self.assertAlmostEqual(analytic_line.amount, self.expected_amount)
         self.task.action_assign()
         self.assertEqual(self.task.stock_state, "assigned")
-        self.assertEqual(len(self.task.stock_move_ids), 1)
-        self.task.stock_move_ids[:1].move_line_ids.qty_done = self.task.stock_move_ids[
+        self.assertEqual(len(self.task.move_raw_ids), 1)
+        self.task.move_raw_ids[:1].move_line_ids.qty_done = self.task.move_raw_ids[
             :1
         ].move_line_ids.product_qty
         self.task.action_done()

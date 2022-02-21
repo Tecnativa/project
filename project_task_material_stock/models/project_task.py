@@ -2,6 +2,7 @@
 # Copyright 2015 Tecnativa - Carlos Dauden
 # Copyright 2016-2017 Tecnativa - Vicent Cubells
 # Copyright 2019 Valentin Vinagre <valentin.vinagre@qubiq.es>
+# Copyright 2022 Tecnativa - Víctor Martínez
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 from odoo import _, api, exceptions, fields, models
 
@@ -18,14 +19,60 @@ class ProjectTaskType(models.Model):
 class Task(models.Model):
     _inherit = "project.task"
 
-    picking_id = fields.Many2one(
-        string="stock.picking", related="stock_move_ids.picking_id",
-    )
-    stock_move_ids = fields.Many2many(
+    @api.model
+    def _get_default_picking_type(self):
+        picking_type = False
+        if self.env.context.get("default_project_id"):
+            project = self.env["project.project"].browse(
+                self.env.context.get("default_project_id")
+            )
+            picking_type = project.picking_type_id
+        if not picking_type:
+            picking_type = self.env["stock.picking.type"].search(
+                [
+                    ("code", "=", "ptm_operation"),
+                    ("warehouse_id.company_id", "=", self.env.company.id),
+                ],
+                limit=1,
+            )
+        return picking_type.id if picking_type else False
+
+    @api.model
+    def _get_default_location_source_id(self):
+        location = False
+        if self.env.context.get("default_project_id"):
+            project = self.env["project.project"].browse(
+                self.env.context.get("default_project_id")
+            )
+            location = project.location_source_id
+        if not location:
+            warehouse = self.env["stock.warehouse"].search(
+                [("company_id", "=", self.env.company.id)], limit=1
+            )
+            location = warehouse.lot_stock_id
+        return location.id if location else False
+
+    @api.model
+    def _get_default_location_dest_id(self):
+        location = False
+        if self.env.context.get("default_project_id"):
+            project = self.env["project.project"].browse(
+                self.env.context.get("default_project_id")
+            )
+            location = project.location_dest_id
+        if not location:
+            warehouse = self.env["stock.warehouse"].search(
+                [("company_id", "=", self.env.company.id)], limit=1
+            )
+            location = warehouse.lot_stock_id
+        return location.id if location else False
+
+    move_raw_ids = fields.One2many(
         comodel_name="stock.move",
-        compute="_compute_stock_move",
+        inverse_name="raw_material_task_id",
         string="Stock Moves",
-        store=True,
+        copy=False,
+        domain=[("scrapped", "=", False)],
     )
     analytic_account_id = fields.Many2one(
         comodel_name="account.analytic.account",
@@ -44,55 +91,62 @@ class Task(models.Model):
             ("confirmed", "Confirmed"),
             ("assigned", "Assigned"),
             ("done", "Done"),
+            ("cancel", "Cancel"),
         ],
         compute="_compute_stock_state",
+    )
+    picking_type_id = fields.Many2one(
+        comodel_name="stock.picking.type",
+        string="Operation Type",
+        domain="[('code', '=', 'ptm_operation'), ('company_id', '=', company_id)]",
+        default=_get_default_picking_type,
+        index=True,
+        check_company=True,
     )
     location_source_id = fields.Many2one(
         comodel_name="stock.location",
         string="Source Location",
+        domain="[('usage','=','internal')]",
+        default=_get_default_location_source_id,
         index=True,
-        help="Keep this field empty to use the default value from the project.",
+        check_company=True,
     )
     location_dest_id = fields.Many2one(
         comodel_name="stock.location",
         string="Destination Location",
+        domain="[('usage','=','internal')]",
+        default=_get_default_location_dest_id,
         index=True,
-        help="Keep this field empty to use the default value from the project.",
+        check_company=True,
     )
-
-    @api.depends("material_ids.stock_move_id")
-    def _compute_stock_move(self):
-        for task in self:
-            task.stock_move_ids = task.mapped("material_ids.stock_move_id")
+    unreserve_visible = fields.Boolean(
+        string="Allowed to Unreserve Inventory",
+        compute="_compute_unreserve_visible",
+        help="Technical field to check when we can unreserve",
+    )
 
     @api.depends("material_ids.analytic_line_id")
     def _compute_analytic_line(self):
         for task in self:
             task.analytic_line_ids = task.mapped("material_ids.analytic_line_id")
 
-    @api.depends("stock_move_ids.state")
+    @api.depends("move_raw_ids.state")
     def _compute_stock_state(self):
         for task in self:
-            if not task.stock_move_ids:
-                task.stock_state = "pending"
-            else:
-                states = task.mapped("stock_move_ids.state")
-                for state in ("confirmed", "assigned", "done"):
+            task.stock_state = "pending"
+            if task.move_raw_ids:
+                states = task.mapped("move_raw_ids.state")
+                for state in ("confirmed", "assigned", "done", "cancel"):
                     if state in states:
                         task.stock_state = state
                         break
 
-    def unlink_stock_move(self):
-        res = False
-        moves = self.mapped("stock_move_ids")
-        moves_done = moves.filtered(lambda r: r.state == "done")
-        if not moves_done:
-            moves.filtered(lambda r: r.state == "assigned")._do_unreserve()
-            moves.filtered(
-                lambda r: r.state in {"waiting", "confirmed", "assigned"}
-            ).write({"state": "draft"})
-            res = moves.unlink()
-        return res
+    @api.depends("move_raw_ids", "move_raw_ids.quantity_done")
+    def _compute_unreserve_visible(self):
+        for item in self:
+            already_reserved = item.mapped("move_raw_ids.move_line_ids")
+            any_quantity_done = any([m.quantity_done > 0 for m in item.move_raw_ids])
+            item.unreserve_visible = not any_quantity_done and already_reserved
 
     def write(self, vals):
         res = super().write(vals)
@@ -106,9 +160,7 @@ class Task(models.Model):
                         todo_lines.create_stock_move()
                         todo_lines.create_analytic_line()
                 else:
-                    if task.unlink_stock_move() and task.material_ids.mapped(
-                        "analytic_line_id"
-                    ):
+                    if task.material_ids.mapped("analytic_line_id"):
                         raise exceptions.Warning(
                             _(
                                 "You can't move to a not consume stage if "
@@ -119,27 +171,62 @@ class Task(models.Model):
         return res
 
     def unlink(self):
-        self.mapped("stock_move_ids").unlink()
         self.mapped("analytic_line_ids").unlink()
         return super().unlink()
 
     def action_assign(self):
-        self.mapped("stock_move_ids")._action_assign()
+        self.mapped("move_raw_ids")._action_assign()
+
+    def button_scrap(self):
+        self.ensure_one()
+        move_items = self.move_raw_ids.filtered(
+            lambda x: x.state not in ("done", "cancel")
+        )
+        finished_items = self.move_finished_ids.filtered(lambda x: x.state == "done")
+        return {
+            "name": _("Scrap"),
+            "view_mode": "form",
+            "res_model": "stock.scrap",
+            "view_id": self.env.ref("stock.stock_scrap_form_view2").id,
+            "type": "ir.actions.act_window",
+            "context": {
+                "default_task_id": self.id,
+                "product_ids": (move_items | finished_items).mapped("product_id").ids,
+                "default_company_id": self.company_id.id,
+            },
+            "target": "new",
+        }
+
+    def do_unreserve(self):
+        for item in self:
+            item.move_raw_ids.filtered(
+                lambda x: x.state not in ("done", "cancel")
+            )._do_unreserve()
+        return True
+
+    def button_unreserve(self):
+        self.ensure_one()
+        self.do_unreserve()
+        return True
+
+    def action_cancel(self):
+        self.move_raw_ids.write({"state": "cancel"})
+        return True
 
     def action_done(self):
-        for move in self.mapped("stock_move_ids"):
-            move.quantity_done = move.product_uom_qty
-        self.mapped("stock_move_ids")._action_done()
+        for move in self.mapped("move_raw_ids"):
+            move.quantity_done = move.reserved_availability
+        self.mapped("move_raw_ids")._action_done()
 
 
 class ProjectTaskMaterial(models.Model):
     _inherit = "project.task.material"
 
-    stock_move_id = fields.Many2one(comodel_name="stock.move", string="Stock Move")
+    stock_move_id = fields.Many2one(comodel_name="stock.move", string="Stock Move",)
     analytic_line_id = fields.Many2one(
         comodel_name="account.analytic.line", string="Analytic Line",
     )
-    product_uom_id = fields.Many2one(comodel_name="uom.uom", string="Unit of Measure")
+    product_uom_id = fields.Many2one(comodel_name="uom.uom", string="Unit of Measure",)
     product_id = fields.Many2one(domain="[('type', 'in', ('consu', 'product'))]")
 
     @api.onchange("product_id")
@@ -156,41 +243,23 @@ class ProjectTaskMaterial(models.Model):
     def _prepare_stock_move(self):
         product = self.product_id
         res = {
+            "raw_material_task_id": self.task_id.id,
+            "picking_type_id": self.task_id.picking_type_id.id,
             "product_id": product.id,
             "name": product.partner_ref,
             "state": "confirmed",
             "product_uom": self.product_uom_id.id or product.uom_id.id,
             "product_uom_qty": self.quantity,
             "origin": self.task_id.name,
-            "location_id": self.task_id.location_source_id.id
-            or self.task_id.project_id.location_source_id.id
-            or self.env.ref("stock.stock_location_stock").id,
-            "location_dest_id": self.task_id.location_dest_id.id
-            or self.task_id.project_id.location_dest_id.id
-            or self.env.ref("stock.stock_location_customers").id,
+            "location_id": self.task_id.location_source_id.id,
+            "location_dest_id": self.task_id.location_dest_id.id,
         }
         return res
 
     def create_stock_move(self):
-        pick_type = self.env.ref(
-            "project_task_material_stock.project_task_material_picking_type"
-        )
-        task = self[0].task_id
-        picking_id = task.picking_id or self.env["stock.picking"].create(
-            {
-                "origin": "{}/{}".format(task.project_id.name, task.name),
-                "partner_id": task.partner_id.id,
-                "picking_type_id": pick_type.id,
-                "location_id": pick_type.default_location_src_id.id,
-                "location_dest_id": pick_type.default_location_dest_id.id,
-            }
-        )
         for line in self:
-            if not line.stock_move_id:
-                move_vals = line._prepare_stock_move()
-                move_vals.update({"picking_id": picking_id.id or False})
-                move_id = self.env["stock.move"].create(move_vals)
-                line.stock_move_id = move_id.id
+            move_id = self.env["stock.move"].create(line._prepare_stock_move())
+            line.stock_move_id = move_id.id
 
     def _prepare_analytic_line(self):
         product = self.product_id
@@ -241,20 +310,6 @@ class ProjectTaskMaterial(models.Model):
         for line in self:
             self.env["account.analytic.line"].create(line._prepare_analytic_line())
 
-    def unlink_stock_move(self):
-        if not self.stock_move_id.state == "done":
-            if self.stock_move_id.state == "assigned":
-                self.stock_move_id._do_unreserve()
-            if self.stock_move_id.state in ("waiting", "confirmed", "assigned"):
-                self.stock_move_id.write({"state": "draft"})
-            picking_id = self.stock_move_id.picking_id
-            self.stock_move_id.unlink()
-            if (
-                not picking_id.move_line_ids_without_package
-                and picking_id.state == "draft"
-            ):
-                picking_id.unlink()
-
     def _update_unit_amount(self):
         # The analytical amount is updated with the value of the
         # stock movement, because if the product has a tracking by
@@ -267,7 +322,6 @@ class ProjectTaskMaterial(models.Model):
             sel.analytic_line_id.amount = sel.stock_move_id.product_id.standard_price
 
     def unlink(self):
-        self.unlink_stock_move()
         if self.stock_move_id:
             raise exceptions.Warning(
                 _(

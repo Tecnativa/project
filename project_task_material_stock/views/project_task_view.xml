@@ -5,6 +5,7 @@
         Copyright 2015 Tecnativa - Carlos Dauden
         Copyright 2016-2017 Tecnativa - Vicent Cubells
         Copyright 2019 Valentin Vinagre <valentin.vinagre@qubiq.es>
+        Copyright 2022 Tecnativa - Víctor Martínez
         License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
     -->
     <record id="task_type_consume_material" model="ir.ui.view">
@@ -35,27 +36,47 @@
             <field name="stage_id" position="before">
                 <button
                     name="action_assign"
+                    string="Check availability"
                     type="object"
-                    string="Check Availability"
-                    attrs="{'invisible':[('stock_state','!=','confirmed')]}"
                     class="oe_highlight"
+                    attrs="{'invisible':['|', ('consume_material', '=', False), ('stock_state','!=','confirmed')]}"
+                />
+                <button
+                    name="button_scrap"
+                    type="object"
+                    string="Scrap"
+                    attrs="{'invisible': ['|', ('consume_material', '=', False), ('stock_state', 'in', ('cancel', 'draft'))]}"
+                />
+                <button
+                    name="button_unreserve"
+                    type="object"
+                    string="Unreserve"
+                    attrs="{'invisible': ['|', ('consume_material', '=', False), ('unreserve_visible', '=', False)]}"
+                />
+                <button
+                    name="action_cancel"
+                    type="object"
+                    string="Cancel"
+                    attrs="{'invisible': ['|', ('consume_material', '=', False), ('stock_state', '=', 'cancel')]}"
                 />
                 <button
                     name="action_done"
                     type="object"
                     string="Transfer Materials"
-                    attrs="{'invisible':[('stock_state','!=','assigned')]}"
+                    attrs="{'invisible':['|', ('consume_material', '=', False), ('stock_state','!=','assigned')]}"
                     class="oe_highlight"
                 />
             </field>
             <field name="material_ids" position="replace">
                 <field name="stock_state" invisible="1" />
                 <field name="consume_material" invisible="1" />
+                <field name="unreserve_visible" invisible="1" />
                 <group
                     string="Locations to consume"
                     name="materials"
                     groups="stock.group_stock_multi_locations"
                 >
+                    <field name="picking_type_id" />
                     <field name="location_source_id" />
                     <field name="location_dest_id" />
                 </group>
@@ -66,7 +87,10 @@
                 >
                     <notebook>
                         <page string="Products" name="products">
-                            <field name="material_ids">
+                            <field
+                                name="material_ids"
+                                attrs="{'readonly': [('consume_material', '=', True)]}"
+                            >
                                 <tree string="Materials used" editable="top">
                                     <field name="product_id" />
                                     <field name="quantity" />
@@ -77,22 +101,28 @@
                                 </tree>
                             </field>
                         </page>
-                        <page string="Stock Moves" name="stock_moves">
-                            <field name="stock_move_ids">
-                                <tree string="Stock Moves">
-                                    <field name="picking_id" />
-                                    <field name="date_expected" />
-                                    <field name="date" />
-                                    <field name="origin" />
+                        <page
+                            string="Stock Moves"
+                            name="move_raw_ids"
+                            attrs="{'readonly': ['|', ('consume_material', '=', False), ('stock_state', '=', 'cancel')]}"
+                        >
+                            <field name="move_raw_ids">
+                                <tree string="Stock Moves" create="0" delete="0">
                                     <field name="product_id" />
-                                    <field name="product_uom_qty" />
-                                    <field name="state" />
-                                    <button
-                                        name="action_show_details"
-                                        string="Register lots, packs, location"
-                                        type="object"
-                                        icon="fa-list"
-                                        options="{&quot;warn&quot;: true}"
+                                    <field name="is_done" invisible="1" />
+                                    <field name="state" invisible="1" />
+                                    <field name="product_uom" groups="uom.group_uom" />
+                                    <field name="product_uom_qty" string="To Consume" />
+                                    <field
+                                        name="reserved_availability"
+                                        attrs="{'invisible': [('is_done', '=', True)], 'column_invisible': [('parent.consume_material', '=', False)]}"
+                                        string="Reserved"
+                                    />
+                                    <field
+                                        name="quantity_done"
+                                        string="Consumed"
+                                        attrs="{'column_invisible': [('parent.consume_material', '=', False)]}"
+                                        readonly="1"
                                     />
                                 </tree>
                             </field>

@@ -93,6 +93,7 @@ Contributors
   * Carlos Dauden
   * Sergio Teruel
   * Vicent Cubells
+  * Víctor Martínez
 
 * `Qubiq <https://www.qubiq.com>`_:
 
