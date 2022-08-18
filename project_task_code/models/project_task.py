@@ -9,7 +9,7 @@ class ProjectTask(models.Model):
 
     code = fields.Char(
         string="Task Number",
-        required=True,
+        required=False,
         default="/",
         readonly=True,
     )
