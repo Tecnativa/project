@@ -15,6 +15,7 @@ class TestProjectStock(TestProjectStockBase):
         cls._create_stock_quant(cls, cls.product_b, cls.location, 1)
         cls._create_stock_quant(cls, cls.product_c, cls.location, 1)
         cls.task = cls._create_task(cls, [(cls.product_a, 2), (cls.product_b, 1)])
+        cls.task = cls.task.with_context({})  # remove defaults
         cls.move_product_a = cls.task.move_ids.filtered(
             lambda x: x.product_id == cls.product_a
         )

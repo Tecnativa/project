@@ -221,7 +221,7 @@ class ProjectTask(models.Model):
         for move in self.move_ids.filtered(lambda x: x.state == "done"):
             vals = move._prepare_analytic_line_from_task()
             if vals:
-                analytic_line_model.create(move._prepare_analytic_line_from_task())
+                analytic_line_model.create(vals)
 
     def action_see_move_scrap(self):
         self.ensure_one()

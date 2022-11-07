@@ -59,13 +59,6 @@ class StockMove(models.Model):
             vals["ref"] = task.name
         if "product_id" in analytic_line_fields:
             vals["product_id"] = product.id
-        # Extra field added in hr_timesheet addon
-        if "employee_id" in analytic_line_fields:
-            vals["employee_id"] = (
-                self.env["hr.employee"]
-                .search([("user_id", "=", task.user_id.id)], limit=1)
-                .id
-            )
         # tags + distributions
         if task.stock_analytic_tag_ids:
             vals["tag_ids"] = [(6, 0, task.stock_analytic_tag_ids.ids)]
