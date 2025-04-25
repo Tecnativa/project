@@ -119,7 +119,7 @@
                     <field name="unreserve_visible" invisible="1" />
                     <field
                         name="move_ids"
-                        context="{'tree_view_ref': 'project_stock.view_stock_move_raw_tree', 'form_view_ref':'stock.view_move_form', 'default_company_id': company_id, 'default_state': 'draft', 'default_raw_material_task_id': id}"
+                        context="{'tree_view_ref': 'project_task_stock.view_stock_move_raw_tree', 'form_view_ref':'stock.view_move_form', 'default_company_id': company_id, 'default_state': 'draft', 'default_raw_material_task_id': id}"
                         attrs="{'readonly': [('done_stock_moves', '=', True),('stock_moves_is_locked', '=', True)]}"
                     />
                 </page>

@@ -21,7 +21,7 @@ class TestProjectStockBase(common.TransactionCase):
         cls.product_c = cls.env["product.product"].create(
             {"name": "Test product C", "detailed_type": "product", "standard_price": 0}
         )
-        cls.picking_type = cls.env.ref("project_stock.stock_picking_type_tm_test")
+        cls.picking_type = cls.env.ref("project_task_stock.stock_picking_type_tm_test")
         cls.location = cls.picking_type.default_location_src_id
         cls.location_dest = cls.picking_type.default_location_dest_id
         cls.plan = cls.env["account.analytic.plan"].create(
@@ -42,7 +42,7 @@ class TestProjectStockBase(common.TransactionCase):
                 "plan_id": cls.plan.id,
             }
         )
-        cls.project = cls.env.ref("project_stock.project_project_tm_test")
+        cls.project = cls.env.ref("project_task_stock.project_project_tm_test")
         cls.project.analytic_account_id = cls.analytic_account
         cls.stage_in_progress = cls.env.ref("project.project_stage_1")
         cls.stage_done = cls.env.ref("project.project_stage_2")
