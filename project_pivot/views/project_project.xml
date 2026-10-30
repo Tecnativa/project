@@ -14,14 +14,21 @@
             </pivot>
         </field>
     </record>
-    <!-- As stated in the core -->
-    <!-- Please update both act_window when modifying one (open_view_project_all, open_view_project_all_config or open_view_project_all_group_stage) -->
-    <!-- as one or the other is used in the menu menu_project_config -->
+    <!-- As stated in the core, depending on the project stages setting, the menus use
+         open_view_project_all or open_view_project_all_group_stage, and
+         open_view_project_all_config or open_view_project_all_config_group_stage,
+         so all of them must be updated -->
     <record id="project.open_view_project_all" model="ir.actions.act_window">
         <field name="view_mode">kanban,list,form,pivot</field>
     </record>
     <record id="project.open_view_project_all_config" model="ir.actions.act_window">
         <field name="view_mode">list,kanban,form,pivot</field>
+    </record>
+    <record
+        id="project.open_view_project_all_config_group_stage"
+        model="ir.actions.act_window"
+    >
+        <field name="view_mode">list,kanban,form,calendar,pivot,activity</field>
     </record>
     <record
         id="project.open_view_project_all_group_stage"
